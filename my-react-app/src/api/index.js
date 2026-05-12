@@ -1,7 +1,16 @@
 export { apiClient } from './client.js'
 export {
+  loginWithEmailPassword,
+  extractTokenFromLoginBody,
+  extractEmailFromLoginBody,
+} from './auth.js'
+export {
   fetchStudents,
-  createStudent,
+  createStudentFromRow,
+  rowToCreateStudentBody,
   updateStudent,
+  patchStudentFromRow,
   deleteStudent,
+  deleteStudentFromRow,
+  mapNestedStudentsToRows,
 } from './students.js'

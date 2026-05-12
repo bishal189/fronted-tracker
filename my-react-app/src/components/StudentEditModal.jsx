@@ -1,29 +1,30 @@
 import { useEffect, useId, useState } from 'react'
+import {
+  BEHAVIOUR_OPTIONS,
+  buildDraftFromStudent,
+  CLASS_OPTIONS,
+  CLASSWORK_OPTIONS,
+  HOMEWORK_OPTIONS,
+  MATERIAL_OPTIONS,
+  PARTICIPATION_OPTIONS,
+  SECTION_OPTIONS,
+  SUBJECT_OPTIONS,
+  selectOptionsList,
+} from '../constants/studentRecordFieldOptions.js'
 
 const fieldBase =
   'mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400'
 
 const labelClass = 'block text-xs font-medium uppercase tracking-wide text-slate-500'
 
-/** Example hints shown only when adding a new record */
 const ADD_PLACEHOLDERS = {
   studentName: 'e.g. Jamie Lee',
-  subject: 'e.g. Mathematics, Biology, English',
-  studentClass: 'e.g. 9',
-  section: 'e.g. A',
-  abs: '0',
-  late: '0',
-  material: 'e.g. Complete, Partial, Missing, N/A',
-  behaviour: 'e.g. Excellent, Good, Fair, Needs support',
-  classwork: 'e.g. Submitted, Late, Incomplete',
-  homework: 'e.g. On time, Late, Pending, Partial',
-  participation: 'e.g. Active, Moderate, Low, High',
   remarks: 'Optional notes for this entry…',
 }
 
 export function StudentEditModal({ student, onClose, onSave }) {
   const titleId = useId()
-  const [draft, setDraft] = useState(() => ({ ...student }))
+  const [draft, setDraft] = useState(() => buildDraftFromStudent(student))
   const isNew = String(student.id).startsWith('new-')
 
   const inputClass = `${fieldBase} ${
@@ -31,6 +32,16 @@ export function StudentEditModal({ student, onClose, onSave }) {
       ? 'border-slate-200 hover:border-emerald-300/70 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/90 focus:ring-offset-0'
       : 'border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-200'
   }`
+
+  const selectClass = `${inputClass} cursor-pointer`
+
+  function flagFromDraft(value) {
+    if (value === true || value === 'true') return true
+    if (value === false || value === 'false') return false
+    const n = Number(value)
+    if (!Number.isNaN(n)) return n > 0
+    return false
+  }
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -54,8 +65,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
     const name = String(draft.studentName ?? '').trim()
     if (!name) return
 
-    const abs = Math.max(0, Number.parseInt(String(draft.abs), 10) || 0)
-    const late = Math.max(0, Number.parseInt(String(draft.late), 10) || 0)
+    const abs = flagFromDraft(draft.abs) ? 1 : 0
+    const late = flagFromDraft(draft.late) ? 1 : 0
 
     onSave({
       ...draft,
@@ -134,127 +145,165 @@ export function StudentEditModal({ student, onClose, onSave }) {
                 <label className={labelClass} htmlFor="edit-subject">
                   Subject
                 </label>
-                <input
+                <select
                   id="edit-subject"
                   value={draft.subject}
                   onChange={(e) => patch('subject', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.subject : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.subject, SUBJECT_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-class">
                   Class
                 </label>
-                <input
+                <select
                   id="edit-class"
                   value={draft.studentClass}
                   onChange={(e) => patch('studentClass', e.target.value)}
-                  className={inputClass}
-                  inputMode="numeric"
-                  placeholder={isNew ? ADD_PLACEHOLDERS.studentClass : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.studentClass, CLASS_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-section">
                   Section
                 </label>
-                <input
+                <select
                   id="edit-section"
                   value={draft.section}
                   onChange={(e) => patch('section', e.target.value)}
-                  className={inputClass}
-                  maxLength={4}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.section : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.section, SECTION_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-abs">
-                  Absences
+                  Absent
                 </label>
-                <input
+                <select
                   id="edit-abs"
-                  type="number"
-                  min={0}
-                  value={draft.abs}
-                  onChange={(e) => patch('abs', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.abs : undefined}
-                />
+                  value={flagFromDraft(draft.abs) ? 'true' : 'false'}
+                  onChange={(e) => patch('abs', e.target.value === 'true')}
+                  className={selectClass}
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-late">
                   Late
                 </label>
-                <input
+                <select
                   id="edit-late"
-                  type="number"
-                  min={0}
-                  value={draft.late}
-                  onChange={(e) => patch('late', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.late : undefined}
-                />
+                  value={flagFromDraft(draft.late) ? 'true' : 'false'}
+                  onChange={(e) => patch('late', e.target.value === 'true')}
+                  className={selectClass}
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-material">
                   Material
                 </label>
-                <input
+                <select
                   id="edit-material"
                   value={draft.material}
                   onChange={(e) => patch('material', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.material : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.material, MATERIAL_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-behaviour">
                   Behaviour
                 </label>
-                <input
+                <select
                   id="edit-behaviour"
                   value={draft.behaviour}
                   onChange={(e) => patch('behaviour', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.behaviour : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.behaviour, BEHAVIOUR_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-classwork">
                   Classwork
                 </label>
-                <input
+                <select
                   id="edit-classwork"
                   value={draft.classwork}
                   onChange={(e) => patch('classwork', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.classwork : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.classwork, CLASSWORK_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelClass} htmlFor="edit-homework">
                   Homework
                 </label>
-                <input
+                <select
                   id="edit-homework"
                   value={draft.homework}
                   onChange={(e) => patch('homework', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.homework : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.homework, HOMEWORK_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass} htmlFor="edit-participation">
                   Participation
                 </label>
-                <input
+                <select
                   id="edit-participation"
                   value={draft.participation}
                   onChange={(e) => patch('participation', e.target.value)}
-                  className={inputClass}
-                  placeholder={isNew ? ADD_PLACEHOLDERS.participation : undefined}
-                />
+                  className={selectClass}
+                >
+                  {selectOptionsList(draft.participation, PARTICIPATION_OPTIONS).map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass} htmlFor="edit-date">

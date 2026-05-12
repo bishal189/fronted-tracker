@@ -2,32 +2,148 @@ import { apiClient } from './client.js'
 
 const RESOURCE = '/students'
 
-function normalizeList(data) {
+function normalizeStudentsResponse(data) {
   if (Array.isArray(data)) return data
-  if (Array.isArray(data?.items)) return data.items
   if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.students)) return data.students
+  if (Array.isArray(data?.items)) return data.items
+  if (data && typeof data === 'object' && Array.isArray(data.records)) {
+    return [data]
+  }
   return []
 }
 
-/** GET /students — returns an array of student record objects */
+function boolishToCount(value) {
+  if (value === true || value === 1) return 1
+  if (typeof value === 'number' && !Number.isNaN(value)) return value
+  return 0
+}
+
+function isoToDateOnly(iso) {
+  if (iso == null || typeof iso !== 'string') return ''
+  return iso.length >= 10 ? iso.slice(0, 10) : iso
+}
+
+export function mapNestedStudentsToRows(students) {
+  if (!Array.isArray(students)) return []
+  const rows = []
+  for (const s of students) {
+    if (!s || typeof s !== 'object') continue
+    const name = s.name != null ? String(s.name) : ''
+    const studentClass = s.class != null ? String(s.class) : ''
+    const section = s.section == null || s.section === '' ? '' : String(s.section)
+    const subject = s.subject == null || s.subject === '' ? '' : String(s.subject)
+    const records = Array.isArray(s.records) ? s.records : []
+    for (const r of records) {
+      if (!r || typeof r !== 'object') continue
+      const rid = r.id != null ? r.id : `${s.id}-${rows.length}`
+      rows.push({
+        id: `r-${rid}`,
+        recordApiId: r.id,
+        studentApiId: s.id,
+        studentName: name,
+        subject,
+        studentClass,
+        section,
+        abs: boolishToCount(r.abs),
+        late: boolishToCount(r.late),
+        material: r.materials != null ? String(r.materials) : '',
+        classwork: r.classwork != null ? String(r.classwork) : '',
+        homework: r.homework != null ? String(r.homework) : '',
+        behaviour: r.behavior != null ? String(r.behavior) : '',
+        participation: r.participation != null ? String(r.participation) : '',
+        remarks: r.remarks != null ? String(r.remarks) : '',
+        date: isoToDateOnly(r.recordDate),
+        action: r.action != null ? String(r.action) : '',
+        others: r.others != null ? String(r.others) : '',
+      })
+    }
+  }
+  return rows
+}
+
 export async function fetchStudents() {
   const { data } = await apiClient.get(RESOURCE)
-  return normalizeList(data)
+  const list = normalizeStudentsResponse(data)
+  return mapNestedStudentsToRows(list)
 }
 
-/** POST /students — body should match your backend schema */
-export async function createStudent(payload) {
-  const { data } = await apiClient.post(RESOURCE, payload)
+function nullableTrim(value) {
+  const t = String(value ?? '').trim()
+  return t.length > 0 ? t : null
+}
+
+function rowBoolFlag(value) {
+  if (value === true || value === 'true') return true
+  if (value === false || value === 'false') return false
+  const n = Number.parseInt(String(value ?? '0'), 10)
+  return !Number.isNaN(n) && n > 0
+}
+
+export function rowToCreateStudentBody(row) {
+  const sectionRaw = String(row.section ?? '').trim()
+  return {
+    name: String(row.studentName ?? '').trim(),
+    subject: nullableTrim(row.subject),
+    class: String(row.studentClass ?? '').trim(),
+    section: sectionRaw.length > 0 ? sectionRaw : null,
+    absences: rowBoolFlag(row.abs),
+    late: rowBoolFlag(row.late),
+    material: nullableTrim(row.material),
+    behaviour: nullableTrim(row.behaviour),
+    classwork: nullableTrim(row.classwork),
+    homework: nullableTrim(row.homework),
+    participation: nullableTrim(row.participation),
+    date: (() => {
+      const d = String(row.date ?? '').trim().slice(0, 10)
+      return d.length > 0 ? d : null
+    })(),
+    remarks: nullableTrim(row.remarks),
+  }
+}
+
+export async function createStudentFromRow(row) {
+  const body = rowToCreateStudentBody(row)
+  const { data } = await apiClient.post(RESOURCE, body)
   return data
 }
 
-/** PUT /students/:id */
 export async function updateStudent(id, payload) {
-  const { data } = await apiClient.put(`${RESOURCE}/${encodeURIComponent(id)}`, payload)
+  const { data } = await apiClient.patch(
+    `${RESOURCE}/${encodeURIComponent(String(id))}`,
+    payload,
+  )
   return data
 }
 
-/** DELETE /students/:id */
+/** PATCH /students/:id — same body shape as POST. Uses student id in the URL; includes recordId when the row maps to a specific API record. */
+export async function patchStudentFromRow(row) {
+  const body = rowToCreateStudentBody(row)
+  const sid = row.studentApiId
+  const rid = row.recordApiId
+
+  if (sid != null && sid !== '') {
+    const payload =
+      rid != null && rid !== '' && String(sid) !== String(rid) ? { ...body, recordId: rid } : body
+    return updateStudent(sid, payload)
+  }
+  if (rid != null && rid !== '') {
+    return updateStudent(rid, body)
+  }
+  const err = new Error('Missing server id for this record. Refresh the list and try again.')
+  throw err
+}
+
 export async function deleteStudent(id) {
-  await apiClient.delete(`${RESOURCE}/${encodeURIComponent(id)}`)
+  await apiClient.delete(`${RESOURCE}/${encodeURIComponent(String(id))}`)
+}
+
+/** DELETE /students/:id — prefers record id (one table row), else student id. */
+export async function deleteStudentFromRow(row) {
+  const id = row.recordApiId ?? row.studentApiId
+  if (id == null || id === '') {
+    const err = new Error('Missing server id for this record. Refresh the list and try again.')
+    throw err
+  }
+  await deleteStudent(id)
 }

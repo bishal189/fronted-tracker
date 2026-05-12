@@ -157,7 +157,7 @@ export function StudentRecordsTable({
   emptyMessage = 'No records.',
 }) {
   return (
-    <div className="overflow-x-auto rounded-b-xl">
+    <div className="min-h-0 overflow-x-auto">
       <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
         <thead>
           <tr className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white shadow-[inset_0_-1px_rgba(255,255,255,0.12)]">
@@ -174,7 +174,7 @@ export function StudentRecordsTable({
               Section
             </th>
             <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-              Abs
+              Absent
             </th>
             <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
               Late
