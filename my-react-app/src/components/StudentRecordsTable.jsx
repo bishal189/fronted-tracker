@@ -92,10 +92,25 @@ function StudentTableRow({ row, index, onRowClick, onEdit, onDelete, onCopy }) {
         </span>
       </td>
       <td
-        className="min-w-[11rem] whitespace-nowrap px-4 py-3 text-right align-middle"
+        className="min-w-[14rem] whitespace-nowrap px-4 py-3 text-right align-middle"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="inline-flex flex-nowrap items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Download"
+            title="Download"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-800"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+              />
+            </svg>
+          </button>
           {onCopy ? (
             <button
               type="button"
@@ -185,7 +200,7 @@ export function StudentRecordsTable({
             <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
               Date
             </th>
-            <th className="min-w-[11rem] whitespace-nowrap px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-white/95">
+            <th className="min-w-[14rem] whitespace-nowrap px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-white/95">
               Actions
             </th>
           </tr>

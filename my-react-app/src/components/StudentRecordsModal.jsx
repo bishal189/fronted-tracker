@@ -1,7 +1,14 @@
 import { useEffect, useId } from 'react'
 import { StudentRecordsTable } from './StudentRecordsTable'
 
-export function StudentRecordsModal({ studentName, records, onClose, onEdit, onDelete, onCopy }) {
+export function StudentRecordsModal({
+  studentName,
+  records,
+  onClose,
+  onEdit,
+  onDelete,
+  onCopy,
+}) {
   const titleId = useId()
 
   useEffect(() => {

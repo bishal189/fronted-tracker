@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { fetchStudents } from '../api/students.js'
 import { StudentEditModal } from '../components/StudentEditModal'
 import { StudentDeleteModal } from '../components/StudentDeleteModal'
 import { StudentRecordsModal } from '../components/StudentRecordsModal'
@@ -494,6 +495,27 @@ export function DashboardPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [userRecordsName, setUserRecordsName] = useState(null)
 
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_BASE_URL?.trim()
+    if (!base) return
+
+    let cancelled = false
+    fetchStudents()
+      .then((list) => {
+        if (cancelled || !Array.isArray(list)) return
+        setStudents(list)
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.warn('[students] API load failed; keeping local seed data.', err)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const studentRecordsForModal = useMemo(() => {
     if (!userRecordsName) return []
     return students.filter((s) => s.studentName === userRecordsName)
@@ -649,38 +671,36 @@ export function DashboardPage() {
           onDelete={handleOpenDelete}
           emptyMessage="No students match your search. Try a different name or subject."
         />
-        <div className="flex flex-col items-stretch justify-between gap-3 border-t border-emerald-100 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/90 p-4 sm:flex-row sm:items-center sm:px-5">
-          <p className="text-sm text-slate-600">
-            Page <span className="font-semibold text-emerald-800">{safePage}</span> of{' '}
-            <span className="font-semibold text-emerald-800">{totalPages}</span>
-            <span className="mx-2 text-emerald-200">·</span>
-            Showing{' '}
-            {filteredStudents.length === 0
-              ? 0
-              : pageStart + 1}
-            –
-            {Math.min(pageStart + PAGE_SIZE, filteredStudents.length)} of{' '}
-            <span className="font-medium text-teal-800">{filteredStudents.length}</span>
-          </p>
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              disabled={safePage <= 1}
-              onClick={() => setCurrentPage(safePage - 1)}
-              className="rounded-lg border border-emerald-200/90 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              disabled={safePage >= totalPages}
-              onClick={() => setCurrentPage(safePage + 1)}
-              className="rounded-lg border border-teal-200/90 bg-white px-4 py-2 text-sm font-semibold text-teal-800 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
+        {filteredStudents.length > 0 ? (
+          <div className="flex flex-col items-stretch justify-between gap-3 border-t border-emerald-100 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/90 p-4 sm:flex-row sm:items-center sm:px-5">
+            <p className="text-sm text-slate-600">
+              Page <span className="font-semibold text-emerald-800">{safePage}</span> of{' '}
+              <span className="font-semibold text-emerald-800">{totalPages}</span>
+              <span className="mx-2 text-emerald-200">·</span>
+              Showing {pageStart + 1}–
+              {Math.min(pageStart + PAGE_SIZE, filteredStudents.length)} of{' '}
+              <span className="font-medium text-teal-800">{filteredStudents.length}</span>
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={safePage <= 1}
+                onClick={() => setCurrentPage(safePage - 1)}
+                className="rounded-lg border border-emerald-200/90 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                disabled={safePage >= totalPages}
+                onClick={() => setCurrentPage(safePage + 1)}
+                className="rounded-lg border border-teal-200/90 bg-white px-4 py-2 text-sm font-semibold text-teal-800 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        ) : null}
       </section>
 
       {userRecordsName ? (
