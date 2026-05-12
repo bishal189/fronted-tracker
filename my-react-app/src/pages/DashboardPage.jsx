@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import { StudentEditModal } from '../components/StudentEditModal'
+import { StudentDeleteModal } from '../components/StudentDeleteModal'
+import { StudentRecordsModal } from '../components/StudentRecordsModal'
+import { StudentRecordsTable } from '../components/StudentRecordsTable'
 
 const PAGE_SIZE = 10
 
@@ -463,11 +466,38 @@ function matchesSearch(student, query) {
   return name.includes(q) || subject.includes(q)
 }
 
+function createBlankStudent() {
+  const today = new Date().toISOString().slice(0, 10)
+  return {
+    id: `new-${Date.now()}`,
+    studentName: '',
+    subject: '',
+    studentClass: '',
+    section: '',
+    abs: '',
+    late: '',
+    material: '',
+    classwork: '',
+    homework: '',
+    behaviour: '',
+    participation: '',
+    remarks: '',
+    date: today,
+  }
+}
+
 export function DashboardPage() {
   const [students, setStudents] = useState(INITIAL_STUDENTS)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [editTarget, setEditTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [userRecordsName, setUserRecordsName] = useState(null)
+
+  const studentRecordsForModal = useMemo(() => {
+    if (!userRecordsName) return []
+    return students.filter((s) => s.studentName === userRecordsName)
+  }, [students, userRecordsName])
 
   const filteredStudents = useMemo(
     () => students.filter((s) => matchesSearch(s, searchQuery)),
@@ -480,14 +510,68 @@ export function DashboardPage() {
   const pageStart = (safePage - 1) * PAGE_SIZE
   const pageRows = filteredStudents.slice(pageStart, pageStart + PAGE_SIZE)
 
-  function handleDelete(id) {
+  function handleOpenDelete(row) {
+    setEditTarget(null)
+    setUserRecordsName(null)
+    setDeleteTarget(row)
+  }
+
+  function handleCloseDelete() {
+    setDeleteTarget(null)
+  }
+
+  function handleConfirmDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget.id
     setStudents((prev) => prev.filter((s) => s.id !== id))
     setEditTarget((t) => (t && t.id === id ? null : t))
+    setDeleteTarget(null)
+  }
+
+  function handleOpenAdd() {
+    setDeleteTarget(null)
+    setUserRecordsName(null)
+    setEditTarget(createBlankStudent())
+  }
+
+  function handleOpenEdit(row) {
+    setDeleteTarget(null)
+    setUserRecordsName(null)
+    setEditTarget(row)
+  }
+
+  function handleOpenStudentRecords(row) {
+    setEditTarget(null)
+    setDeleteTarget(null)
+    setUserRecordsName(row.studentName)
+  }
+
+  function handleCopyRow(row) {
+    const newId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? `copy-${crypto.randomUUID()}`
+        : `copy-${row.id}-${Date.now()}`
+    const replica = { ...row, id: newId }
+    setStudents((prev) => {
+      const idx = prev.findIndex((s) => s.id === row.id)
+      if (idx === -1) return [...prev, replica]
+      return [...prev.slice(0, idx + 1), replica, ...prev.slice(idx + 1)]
+    })
   }
 
   function handleSaveStudent(updated) {
-    setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+    const isNew = String(updated.id).startsWith('new-')
+    if (isNew) {
+      const newId =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? `s-${crypto.randomUUID()}`
+          : `s-${Date.now()}`
+      setStudents((prev) => [...prev, { ...updated, id: newId }])
+    } else {
+      setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+    }
     setEditTarget(null)
+    setUserRecordsName(null)
   }
 
   function handleCloseEdit() {
@@ -506,206 +590,65 @@ export function DashboardPage() {
       </div>
 
       <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-emerald-200/70 bg-white shadow-md shadow-emerald-100/50 ring-1 ring-emerald-50">
-        <div className="flex flex-col gap-4 border-b border-emerald-100/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div>
+        <div className="flex flex-col gap-4 border-b border-emerald-100/80 p-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-x-4 sm:gap-y-3 sm:p-5">
+          <div className="min-w-0 flex-1">
             <h3 className="text-base font-semibold text-emerald-950">Student records</h3>
             <p className="text-sm text-slate-500">
               {filteredStudents.length} record
               {filteredStudents.length !== 1 ? 's' : ''} match your filters.
+              <span className="mt-1 block text-xs text-slate-400">
+                Click a row to open every record for that student; duplicate rows from there.
+              </span>
             </p>
           </div>
-          <label className="relative w-full sm:max-w-xs">
-            <span className="sr-only">Search by student name or subject</span>
-            <svg
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              aria-hidden
+          <div className="flex w-full flex-col gap-3 sm:min-w-0 sm:flex-1 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald-300/40 transition hover:bg-emerald-700 focus-visible:outline focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+              <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add record
+            </button>
+            <label className="relative min-w-0 w-full flex-1 sm:min-w-[18rem] md:min-w-[24rem] lg:min-w-[32rem]">
+              <span className="sr-only">Search by student name or subject</span>
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setCurrentPage(1)
+                }}
+                placeholder="Try a name (e.g. Aisha Rahman) or a subject (e.g. Mathematics, Biology)…"
+                className="w-full rounded-lg border border-slate-200 bg-slate-50/80 py-2.5 pl-10 pr-3 text-sm text-slate-900 shadow-inner outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               />
-            </svg>
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setCurrentPage(1)
-              }}
-              placeholder="Search name or subject…"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50/80 py-2.5 pl-10 pr-3 text-sm text-slate-900 shadow-inner outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
+            </label>
+          </div>
         </div>
 
-        <div className="overflow-x-auto rounded-b-xl">
-          <table className="min-w-[1100px] w-full border-collapse text-left text-sm">
-            <thead>
-              <tr className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white shadow-[inset_0_-1px_rgba(255,255,255,0.12)]">
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Student Name
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Subject
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Class
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Section
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Abs
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Late
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Material
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Classwork
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Homework
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Behaviour
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Participation
-                </th>
-                <th className="min-w-[140px] whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Remarks
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Date
-                </th>
-                <th className="whitespace-nowrap px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-white/95">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-emerald-100/80">
-              {pageRows.length === 0 ? (
-                <tr>
-                  <td colSpan={14} className="px-4 py-12 text-center text-slate-500">
-                    No students match your search. Try a different name or subject.
-                  </td>
-                </tr>
-              ) : (
-                pageRows.map((row, index) => (
-                  <tr
-                    key={row.id}
-                    className={`group transition-colors duration-150 hover:bg-gradient-to-r hover:from-emerald-50 hover:via-green-50 hover:to-teal-50 ${
-                      index % 2 === 0 ? 'bg-white' : 'bg-emerald-50/45'
-                    }`}
-                  >
-                    <td className="whitespace-nowrap border-l-[3px] border-l-transparent px-4 py-3 font-semibold text-emerald-950 group-hover:border-l-emerald-500">
-                      {row.studentName}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="inline-flex max-w-[12rem] truncate rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-900 ring-1 ring-green-200/90">
-                        {row.subject}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="inline-flex min-w-[2.25rem] justify-center rounded-lg bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-900 ring-1 ring-emerald-200/90">
-                        {row.studentClass}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-lime-400 text-sm font-bold text-lime-950 shadow-sm ring-2 ring-lime-200/90">
-                        {row.section}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                      <span
-                        className={
-                          row.abs > 0
-                            ? 'inline-flex min-w-[1.75rem] justify-center rounded-md bg-rose-100 px-2 py-0.5 text-sm font-bold text-rose-700 ring-1 ring-rose-200'
-                            : 'text-slate-500'
-                        }
-                      >
-                        {row.abs}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                      <span
-                        className={
-                          row.late > 0
-                            ? 'inline-flex min-w-[1.75rem] justify-center rounded-md bg-orange-100 px-2 py-0.5 text-sm font-bold text-orange-800 ring-1 ring-orange-200'
-                            : 'text-slate-500'
-                        }
-                      >
-                        {row.late}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-900 ring-1 ring-emerald-200/80">
-                        {row.material}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="rounded-md bg-teal-100 px-2 py-1 text-xs font-medium text-teal-900 ring-1 ring-teal-200/80">
-                        {row.classwork}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="rounded-md bg-lime-100 px-2 py-1 text-xs font-medium text-lime-900 ring-1 ring-lime-200/80">
-                        {row.homework}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="rounded-md bg-green-100 px-2 py-1 text-xs font-medium text-green-900 ring-1 ring-green-200/80">
-                        {row.behaviour}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="rounded-md bg-teal-50 px-2 py-1 text-xs font-medium text-teal-900 ring-1 ring-teal-200/80">
-                        {row.participation}
-                      </span>
-                    </td>
-                    <td className="max-w-[200px] px-4 py-3 text-slate-700">
-                      <span className="line-clamp-2" title={row.remarks}>
-                        {row.remarks}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="inline-flex rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200/90">
-                        {row.date}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditTarget(row)}
-                          className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-300/60 transition hover:bg-emerald-700 hover:shadow-md"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(row.id)}
-                          className="rounded-lg bg-rose-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-rose-300/60 transition hover:bg-rose-600 hover:shadow-md"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
+        <StudentRecordsTable
+          rows={pageRows}
+          onRowClick={handleOpenStudentRecords}
+          onEdit={handleOpenEdit}
+          onDelete={handleOpenDelete}
+          emptyMessage="No students match your search. Try a different name or subject."
+        />
         <div className="flex flex-col items-stretch justify-between gap-3 border-t border-emerald-100 bg-gradient-to-r from-emerald-50/95 via-green-50/80 to-teal-50/90 p-4 sm:flex-row sm:items-center sm:px-5">
           <p className="text-sm text-slate-600">
             Page <span className="font-semibold text-emerald-800">{safePage}</span> of{' '}
@@ -740,12 +683,32 @@ export function DashboardPage() {
         </div>
       </section>
 
+      {userRecordsName ? (
+        <StudentRecordsModal
+          studentName={userRecordsName}
+          records={studentRecordsForModal}
+          onClose={() => setUserRecordsName(null)}
+          onEdit={handleOpenEdit}
+          onDelete={handleOpenDelete}
+          onCopy={handleCopyRow}
+        />
+      ) : null}
+
       {editTarget ? (
         <StudentEditModal
           key={editTarget.id}
           student={editTarget}
           onClose={handleCloseEdit}
           onSave={handleSaveStudent}
+        />
+      ) : null}
+
+      {deleteTarget ? (
+        <StudentDeleteModal
+          key={deleteTarget.id}
+          student={deleteTarget}
+          onClose={handleCloseDelete}
+          onConfirm={handleConfirmDelete}
         />
       ) : null}
     </div>

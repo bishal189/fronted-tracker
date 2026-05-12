@@ -1,13 +1,36 @@
 import { useEffect, useId, useState } from 'react'
 
-const fieldClass =
-  'mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200'
+const fieldBase =
+  'mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400'
 
 const labelClass = 'block text-xs font-medium uppercase tracking-wide text-slate-500'
+
+/** Example hints shown only when adding a new record */
+const ADD_PLACEHOLDERS = {
+  studentName: 'e.g. Jamie Lee',
+  subject: 'e.g. Mathematics, Biology, English',
+  studentClass: 'e.g. 9',
+  section: 'e.g. A',
+  abs: '0',
+  late: '0',
+  material: 'e.g. Complete, Partial, Missing, N/A',
+  behaviour: 'e.g. Excellent, Good, Fair, Needs support',
+  classwork: 'e.g. Submitted, Late, Incomplete',
+  homework: 'e.g. On time, Late, Pending, Partial',
+  participation: 'e.g. Active, Moderate, Low, High',
+  remarks: 'Optional notes for this entry…',
+}
 
 export function StudentEditModal({ student, onClose, onSave }) {
   const titleId = useId()
   const [draft, setDraft] = useState(() => ({ ...student }))
+  const isNew = String(student.id).startsWith('new-')
+
+  const inputClass = `${fieldBase} ${
+    isNew
+      ? 'border-slate-200 hover:border-emerald-300/70 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/90 focus:ring-offset-0'
+      : 'border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-200'
+  }`
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -70,10 +93,12 @@ export function StudentEditModal({ student, onClose, onSave }) {
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
           <div>
             <h2 id={titleId} className="text-lg font-semibold tracking-tight text-slate-900">
-              Edit record
+              {isNew ? 'Add record' : 'Edit record'}
             </h2>
             <p className="mt-0.5 text-sm text-slate-500">
-              Update fields and save — press Esc to cancel.
+              {isNew
+                ? 'Fill in the fields and save — press Esc to cancel.'
+                : 'Update fields and save — press Esc to cancel.'}
             </p>
           </div>
           <button
@@ -100,8 +125,9 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   required
                   value={draft.studentName}
                   onChange={(e) => patch('studentName', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
                   autoComplete="name"
+                  placeholder={isNew ? ADD_PLACEHOLDERS.studentName : undefined}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -112,7 +138,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-subject"
                   value={draft.subject}
                   onChange={(e) => patch('subject', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.subject : undefined}
                 />
               </div>
               <div>
@@ -123,8 +150,9 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-class"
                   value={draft.studentClass}
                   onChange={(e) => patch('studentClass', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
                   inputMode="numeric"
+                  placeholder={isNew ? ADD_PLACEHOLDERS.studentClass : undefined}
                 />
               </div>
               <div>
@@ -135,8 +163,9 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-section"
                   value={draft.section}
                   onChange={(e) => patch('section', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
                   maxLength={4}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.section : undefined}
                 />
               </div>
               <div>
@@ -149,7 +178,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   min={0}
                   value={draft.abs}
                   onChange={(e) => patch('abs', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.abs : undefined}
                 />
               </div>
               <div>
@@ -162,7 +192,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   min={0}
                   value={draft.late}
                   onChange={(e) => patch('late', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.late : undefined}
                 />
               </div>
               <div>
@@ -173,7 +204,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-material"
                   value={draft.material}
                   onChange={(e) => patch('material', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.material : undefined}
                 />
               </div>
               <div>
@@ -184,7 +216,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-behaviour"
                   value={draft.behaviour}
                   onChange={(e) => patch('behaviour', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.behaviour : undefined}
                 />
               </div>
               <div>
@@ -195,7 +228,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-classwork"
                   value={draft.classwork}
                   onChange={(e) => patch('classwork', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.classwork : undefined}
                 />
               </div>
               <div>
@@ -206,7 +240,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-homework"
                   value={draft.homework}
                   onChange={(e) => patch('homework', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.homework : undefined}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -217,7 +252,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   id="edit-participation"
                   value={draft.participation}
                   onChange={(e) => patch('participation', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.participation : undefined}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -229,7 +265,7 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   type="date"
                   value={draft.date}
                   onChange={(e) => patch('date', e.target.value)}
-                  className={fieldClass}
+                  className={inputClass}
                 />
               </div>
               <div className="sm:col-span-2">
@@ -241,7 +277,8 @@ export function StudentEditModal({ student, onClose, onSave }) {
                   rows={3}
                   value={draft.remarks}
                   onChange={(e) => patch('remarks', e.target.value)}
-                  className={`${fieldClass} min-h-[5rem] resize-y`}
+                  className={`${inputClass} min-h-[5rem] resize-y`}
+                  placeholder={isNew ? ADD_PLACEHOLDERS.remarks : undefined}
                 />
               </div>
             </div>
@@ -259,7 +296,7 @@ export function StudentEditModal({ student, onClose, onSave }) {
               type="submit"
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
             >
-              Save changes
+              {isNew ? 'Add record' : 'Save changes'}
             </button>
           </div>
         </form>
