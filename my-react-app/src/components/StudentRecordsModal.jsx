@@ -46,7 +46,7 @@ export function StudentRecordsModal({
             <p className="text-sm text-slate-600">
               {records.length} record{records.length !== 1 ? 's' : ''} for this student.
               <span className="mt-0.5 block text-xs text-slate-500">
-                Use the duplicate icon to copy a row into the main list.
+                Duplicate adds a draft row—open Edit and save to append it via the server.
               </span>
             </p>
           </div>
@@ -69,6 +69,7 @@ export function StudentRecordsModal({
               onEdit={onEdit}
               onDelete={onDelete}
               onCopy={onCopy}
+              showDownload={false}
               emptyMessage="No records for this student."
             />
           </div>

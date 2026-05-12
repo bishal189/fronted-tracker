@@ -20,7 +20,15 @@ export const SUBJECT_OPTIONS = [
 
 export const MATERIAL_OPTIONS = ['Complete', 'Partial', 'Missing', 'N/A']
 
-export const BEHAVIOUR_OPTIONS = ['Excellent', 'Good', 'Fair', 'Needs support']
+export const BEHAVIOUR_OPTIONS = [
+  'Excellent',
+  'Good',
+  'Fair',
+  'Needs support',
+  'Misbehaved',
+  'Talkative',
+  'Aggressive',
+]
 
 export const CLASSWORK_OPTIONS = ['Submitted', 'Late', 'Incomplete', 'Participated', 'N/A']
 

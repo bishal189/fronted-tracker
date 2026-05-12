@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
+  appendStudentRecordFromRow,
   createStudentFromRow,
   deleteStudentFromRow,
+  exportStudent,
   fetchStudents,
   patchStudentFromRow,
 } from '../api/students.js'
@@ -46,19 +48,29 @@ function formatSaveError(err) {
 }
 
 export function DashboardPage() {
-  const [students, setStudents] = useState([])
+  const [summaryRows, setSummaryRows] = useState([])
+  const [recordRows, setRecordRows] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
-  const [userRecordsName, setUserRecordsName] = useState(null)
+  const [recordsModal, setRecordsModal] = useState(null)
+
+  async function refreshStudentLists() {
+    const payload = await fetchStudents()
+    if (payload?.summaryRows && payload?.recordRows) {
+      setSummaryRows(payload.summaryRows)
+      setRecordRows(payload.recordRows)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
     fetchStudents()
-      .then((list) => {
-        if (cancelled || !Array.isArray(list)) return
-        setStudents(list)
+      .then((payload) => {
+        if (cancelled || !payload?.summaryRows || !payload?.recordRows) return
+        setSummaryRows(payload.summaryRows)
+        setRecordRows(payload.recordRows)
       })
       .catch((err) => {
         if (!cancelled) {
@@ -72,24 +84,25 @@ export function DashboardPage() {
   }, [])
 
   const studentRecordsForModal = useMemo(() => {
-    if (!userRecordsName) return []
-    return students.filter((s) => s.studentName === userRecordsName)
-  }, [students, userRecordsName])
+    if (!recordsModal) return []
+    const sid = String(recordsModal.studentId)
+    return recordRows.filter((r) => String(r.studentApiId) === sid)
+  }, [recordRows, recordsModal])
 
-  const filteredStudents = useMemo(
-    () => students.filter((s) => matchesSearch(s, searchQuery)),
-    [students, searchQuery],
+  const filteredSummary = useMemo(
+    () => summaryRows.filter((s) => matchesSearch(s, searchQuery)),
+    [summaryRows, searchQuery],
   )
 
-  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filteredSummary.length / PAGE_SIZE))
   const safePage = Math.min(Math.max(1, currentPage), totalPages)
 
   const pageStart = (safePage - 1) * PAGE_SIZE
-  const pageRows = filteredStudents.slice(pageStart, pageStart + PAGE_SIZE)
+  const pageRows = filteredSummary.slice(pageStart, pageStart + PAGE_SIZE)
 
   function handleOpenDelete(row) {
     setEditTarget(null)
-    setUserRecordsName(null)
+    setRecordsModal(null)
     setDeleteTarget(row)
   }
 
@@ -104,8 +117,7 @@ export function DashboardPage() {
       await toast.promise(
         (async () => {
           await deleteStudentFromRow(deleteTarget)
-          const list = await fetchStudents()
-          setStudents(Array.isArray(list) ? list : [])
+          await refreshStudentLists()
         })(),
         {
           loading: 'Deleting…',
@@ -122,20 +134,24 @@ export function DashboardPage() {
 
   function handleOpenAdd() {
     setDeleteTarget(null)
-    setUserRecordsName(null)
+    setRecordsModal(null)
     setEditTarget(createBlankStudent())
   }
 
   function handleOpenEdit(row) {
     setDeleteTarget(null)
-    setUserRecordsName(null)
+    setRecordsModal(null)
     setEditTarget(row)
   }
 
   function handleOpenStudentRecords(row) {
     setEditTarget(null)
     setDeleteTarget(null)
-    setUserRecordsName(row.studentName)
+    if (row.studentApiId == null || row.studentApiId === '') return
+    setRecordsModal({
+      studentId: row.studentApiId,
+      studentName: row.studentName,
+    })
   }
 
   function handleCopyRow(row) {
@@ -143,8 +159,8 @@ export function DashboardPage() {
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? `copy-${crypto.randomUUID()}`
         : `copy-${row.id}-${Date.now()}`
-    const replica = { ...row, id: newId }
-    setStudents((prev) => {
+    const replica = { ...row, id: newId, recordApiId: undefined }
+    setRecordRows((prev) => {
       const idx = prev.findIndex((s) => s.id === row.id)
       if (idx === -1) return [...prev, replica]
       return [...prev.slice(0, idx + 1), replica, ...prev.slice(idx + 1)]
@@ -152,18 +168,38 @@ export function DashboardPage() {
   }
 
   async function handleSaveStudent(updated) {
-    const isNew = String(updated.id).startsWith('new-')
-    if (isNew) {
+    const isNewStudent = String(updated.id).startsWith('new-')
+    const isCopiedRowAppend =
+      String(updated.id).startsWith('copy-') &&
+      updated.studentApiId != null &&
+      updated.studentApiId !== ''
+
+    if (isNewStudent) {
       try {
         await toast.promise(
           (async () => {
             await createStudentFromRow(updated)
-            const list = await fetchStudents()
-            setStudents(Array.isArray(list) ? list : [])
+            await refreshStudentLists()
           })(),
           {
             loading: 'Adding record…',
             success: 'Record added successfully',
+            error: (err) => formatSaveError(err),
+          },
+        )
+      } catch {
+        return
+      }
+    } else if (isCopiedRowAppend) {
+      try {
+        await toast.promise(
+          (async () => {
+            await appendStudentRecordFromRow(updated)
+            await refreshStudentLists()
+          })(),
+          {
+            loading: 'Adding record…',
+            success: 'Record added to student',
             error: (err) => formatSaveError(err),
           },
         )
@@ -175,8 +211,7 @@ export function DashboardPage() {
         await toast.promise(
           (async () => {
             await patchStudentFromRow(updated)
-            const list = await fetchStudents()
-            setStudents(Array.isArray(list) ? list : [])
+            await refreshStudentLists()
           })(),
           {
             loading: 'Saving changes…',
@@ -189,7 +224,20 @@ export function DashboardPage() {
       }
     }
     setEditTarget(null)
-    setUserRecordsName(null)
+    setRecordsModal(null)
+  }
+
+  function handleDownloadExport(row) {
+    const sid = row.studentApiId
+    if (sid == null || sid === '') {
+      toast.error('Cannot export: missing student id.')
+      return
+    }
+    void toast.promise(exportStudent(sid), {
+      loading: 'Preparing download…',
+      success: 'Download started',
+      error: (err) => formatSaveError(err),
+    })
   }
 
   function handleCloseEdit() {
@@ -212,10 +260,10 @@ export function DashboardPage() {
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-semibold text-emerald-950">Student records</h3>
             <p className="text-sm text-slate-500">
-              {filteredStudents.length} record
-              {filteredStudents.length !== 1 ? 's' : ''} match your filters.
+              {filteredSummary.length} student
+              {filteredSummary.length !== 1 ? 's' : ''} match your filters.
               <span className="mt-1 block text-xs text-slate-400">
-                Click a row to open every record for that student; duplicate rows from there.
+                Click a row to see every daily record for that student; duplicate from there.
               </span>
             </p>
           </div>
@@ -266,18 +314,19 @@ export function DashboardPage() {
             onRowClick={handleOpenStudentRecords}
             onEdit={handleOpenEdit}
             onDelete={handleOpenDelete}
+            onDownload={handleDownloadExport}
             emptyMessage="No students match your search. Try a different name or subject."
           />
         </div>
-        {filteredStudents.length > 0 ? (
+        {filteredSummary.length > 0 ? (
           <div className="flex shrink-0 flex-col items-stretch justify-between gap-3 border-t border-emerald-100 bg-gradient-to-r from-emerald-50/98 via-green-50/90 to-teal-50/95 p-4 shadow-[0_-8px_24px_-12px_rgba(6,95,70,0.18)] backdrop-blur-sm sm:flex-row sm:items-center sm:px-5">
             <p className="text-sm text-slate-600">
               Page <span className="font-semibold text-emerald-800">{safePage}</span> of{' '}
               <span className="font-semibold text-emerald-800">{totalPages}</span>
               <span className="mx-2 text-emerald-200">·</span>
               Showing {pageStart + 1}–
-              {Math.min(pageStart + PAGE_SIZE, filteredStudents.length)} of{' '}
-              <span className="font-medium text-teal-800">{filteredStudents.length}</span>
+              {Math.min(pageStart + PAGE_SIZE, filteredSummary.length)} of{' '}
+              <span className="font-medium text-teal-800">{filteredSummary.length}</span>
             </p>
             <div className="flex items-center justify-end gap-2">
               <button
@@ -301,11 +350,11 @@ export function DashboardPage() {
         ) : null}
       </section>
 
-      {userRecordsName ? (
+      {recordsModal ? (
         <StudentRecordsModal
-          studentName={userRecordsName}
+          studentName={recordsModal.studentName}
           records={studentRecordsForModal}
-          onClose={() => setUserRecordsName(null)}
+          onClose={() => setRecordsModal(null)}
           onEdit={handleOpenEdit}
           onDelete={handleOpenDelete}
           onCopy={handleCopyRow}
