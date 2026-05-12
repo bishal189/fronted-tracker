@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { StudentEditModal } from '../components/StudentEditModal'
 
 const PAGE_SIZE = 10
 
@@ -466,6 +467,7 @@ export function DashboardPage() {
   const [students, setStudents] = useState(INITIAL_STUDENTS)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [editTarget, setEditTarget] = useState(null)
 
   const filteredStudents = useMemo(
     () => students.filter((s) => matchesSearch(s, searchQuery)),
@@ -480,10 +482,16 @@ export function DashboardPage() {
 
   function handleDelete(id) {
     setStudents((prev) => prev.filter((s) => s.id !== id))
+    setEditTarget((t) => (t && t.id === id ? null : t))
   }
 
-  function handleEdit() {
-    console.log('edit student')
+  function handleSaveStudent(updated) {
+    setStudents((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+    setEditTarget(null)
+  }
+
+  function handleCloseEdit() {
+    setEditTarget(null)
   }
 
   return (
@@ -677,7 +685,7 @@ export function DashboardPage() {
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
-                          onClick={handleEdit}
+                          onClick={() => setEditTarget(row)}
                           className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm shadow-emerald-300/60 transition hover:bg-emerald-700 hover:shadow-md"
                         >
                           Edit
@@ -731,6 +739,15 @@ export function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {editTarget ? (
+        <StudentEditModal
+          key={editTarget.id}
+          student={editTarget}
+          onClose={handleCloseEdit}
+          onSave={handleSaveStudent}
+        />
+      ) : null}
     </div>
   )
 }

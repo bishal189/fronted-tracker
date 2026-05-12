@@ -1,4 +1,4 @@
-import schoolLogo from '../../assets/school-logo.svg'
+import schoolLogo from '../../assets/school-logo.jpg'
 
 export function Header() {
   return (
