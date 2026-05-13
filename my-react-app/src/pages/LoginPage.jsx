@@ -5,6 +5,12 @@ import { loginWithEmailPassword } from '../api/auth.js'
 import schoolLogo from '../assets/school-logo.jpg'
 import { useAuth } from '../context/AuthContext'
 
+const DEVELOPERS = [
+  { name: 'Dinesh Sitoula', url: 'https://github.com/dineshctoula' },
+  { name: 'Dipak Sitoula' },
+  { name: 'Sagar Luitel' },
+]
+
 function formatLoginError(err) {
   const data = err?.response?.data
   if (data == null) {
@@ -167,7 +173,36 @@ export function LoginPage() {
           </p>
         </div>
 
-        <p className="mt-8 text-center text-xs text-emerald-900/40">
+        <p className="mt-8 text-center text-xs leading-relaxed text-emerald-900/45">
+          Developed by{' '}
+          {DEVELOPERS.map((dev, index) => (
+            <span key={dev.name}>
+              {index > 0 ? (
+                <span className="font-normal text-emerald-900/45">
+                  {index === DEVELOPERS.length - 1 ? ' and ' : ', '}
+                </span>
+              ) : null}
+              {dev.url ? (
+                <a
+                  href={dev.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-emerald-800/85 underline decoration-emerald-700/35 underline-offset-2 transition hover:text-emerald-700 hover:decoration-emerald-600/60"
+                >
+                  {dev.name}
+                </a>
+              ) : (
+                <span className="font-medium text-emerald-800/85">{dev.name}</span>
+              )}
+            </span>
+          ))}
+          {' '}
+          with love{' '}
+          <span className="text-rose-500/90" aria-hidden>
+            ♥
+          </span>
+        </p>
+        <p className="mt-2 text-center text-xs text-emerald-900/40">
           © {new Date().getFullYear()} Student Management System
         </p>
       </div>

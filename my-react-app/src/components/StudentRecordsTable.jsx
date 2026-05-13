@@ -1,4 +1,14 @@
-function StudentTableRow({ row, index, onRowClick, onEdit, onDelete, onCopy, showDownload = true, onDownload }) {
+function StudentTableRow({
+  row,
+  index,
+  onRowClick,
+  rowClickTitle,
+  onEdit,
+  onDelete,
+  onCopy,
+  showDownload = true,
+  onDownload,
+}) {
   const interactive = Boolean(onRowClick)
 
   return (
@@ -11,7 +21,7 @@ function StudentTableRow({ row, index, onRowClick, onEdit, onDelete, onCopy, sho
             }
           : undefined
       }
-      title={interactive ? 'View all records for this student' : undefined}
+      title={interactive ? rowClickTitle || 'View all records for this student' : undefined}
       className={`group transition-colors duration-150 hover:bg-gradient-to-r hover:from-emerald-50 hover:via-green-50 hover:to-teal-50 ${
         index % 2 === 0 ? 'bg-white' : 'bg-emerald-50/45'
       } ${interactive ? 'cursor-pointer' : ''}`}
@@ -156,6 +166,7 @@ function StudentTableRow({ row, index, onRowClick, onEdit, onDelete, onCopy, sho
 export function StudentRecordsTable({
   rows,
   onRowClick,
+  rowClickTitle,
   onEdit,
   onDelete,
   onCopy,
@@ -226,6 +237,7 @@ export function StudentRecordsTable({
                 row={row}
                 index={index}
                 onRowClick={onRowClick}
+                rowClickTitle={rowClickTitle}
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onCopy={onCopy}

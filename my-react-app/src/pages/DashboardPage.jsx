@@ -49,7 +49,6 @@ function formatSaveError(err) {
 
 export function DashboardPage() {
   const [summaryRows, setSummaryRows] = useState([])
-  const [recordRows, setRecordRows] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [editTarget, setEditTarget] = useState(null)
@@ -58,9 +57,8 @@ export function DashboardPage() {
 
   async function refreshStudentLists() {
     const payload = await fetchStudents()
-    if (payload?.summaryRows && payload?.recordRows) {
+    if (payload?.summaryRows) {
       setSummaryRows(payload.summaryRows)
-      setRecordRows(payload.recordRows)
     }
   }
 
@@ -68,9 +66,8 @@ export function DashboardPage() {
     let cancelled = false
     fetchStudents()
       .then((payload) => {
-        if (cancelled || !payload?.summaryRows || !payload?.recordRows) return
+        if (cancelled || !payload?.summaryRows) return
         setSummaryRows(payload.summaryRows)
-        setRecordRows(payload.recordRows)
       })
       .catch((err) => {
         if (!cancelled) {
@@ -82,12 +79,6 @@ export function DashboardPage() {
       cancelled = true
     }
   }, [])
-
-  const studentRecordsForModal = useMemo(() => {
-    if (!recordsModal) return []
-    const sid = String(recordsModal.studentId)
-    return recordRows.filter((r) => String(r.studentApiId) === sid)
-  }, [recordRows, recordsModal])
 
   const filteredSummary = useMemo(
     () => summaryRows.filter((s) => matchesSearch(s, searchQuery)),
@@ -151,19 +142,6 @@ export function DashboardPage() {
     setRecordsModal({
       studentId: row.studentApiId,
       studentName: row.studentName,
-    })
-  }
-
-  function handleCopyRow(row) {
-    const newId =
-      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? `copy-${crypto.randomUUID()}`
-        : `copy-${row.id}-${Date.now()}`
-    const replica = { ...row, id: newId, recordApiId: undefined }
-    setRecordRows((prev) => {
-      const idx = prev.findIndex((s) => s.id === row.id)
-      if (idx === -1) return [...prev, replica]
-      return [...prev.slice(0, idx + 1), replica, ...prev.slice(idx + 1)]
     })
   }
 
@@ -352,12 +330,12 @@ export function DashboardPage() {
 
       {recordsModal ? (
         <StudentRecordsModal
+          key={String(recordsModal.studentId)}
+          studentId={recordsModal.studentId}
           studentName={recordsModal.studentName}
-          records={studentRecordsForModal}
           onClose={() => setRecordsModal(null)}
           onEdit={handleOpenEdit}
           onDelete={handleOpenDelete}
-          onCopy={handleCopyRow}
         />
       ) : null}
 

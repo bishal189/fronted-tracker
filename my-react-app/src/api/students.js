@@ -143,8 +143,20 @@ export function mapNestedStudentsToRows(students) {
   return rows
 }
 
-export async function fetchStudents() {
-  const { data } = await apiClient.get(RESOURCE)
+function normalizeDateQuery(value) {
+  const s = String(value ?? '').trim().slice(0, 10)
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''
+}
+
+/** @param {{ from?: string; to?: string; signal?: AbortSignal }} [options] */
+export async function fetchStudents(options = {}) {
+  const { from, to, signal } = options
+  const params = {}
+  const fromQ = normalizeDateQuery(from)
+  const toQ = normalizeDateQuery(to)
+  if (fromQ) params.from = fromQ
+  if (toQ) params.to = toQ
+  const { data } = await apiClient.get(RESOURCE, { params, signal })
   const list = normalizeStudentsResponse(data)
   return {
     summaryRows: mapStudentsToSummaryRows(list),
@@ -271,14 +283,20 @@ function parseFilenameFromContentDisposition(value) {
   return null
 }
 
-/** GET /students/:id/export — saves response as a file (uses Content-Disposition filename when present). */
-export async function exportStudent(studentId) {
+/** GET /students/:id/export — saves response as a file (uses Content-Disposition filename when present). Optional `from` / `to` (YYYY-MM-DD) query params. */
+export async function exportStudent(studentId, range = {}) {
   const sid = studentId != null ? String(studentId).trim() : ''
   if (!sid) {
     const err = new Error('Missing student id for export.')
     throw err
   }
+  const params = {}
+  const fromQ = normalizeDateQuery(range.from)
+  const toQ = normalizeDateQuery(range.to)
+  if (fromQ) params.from = fromQ
+  if (toQ) params.to = toQ
   const res = await apiClient.get(`${RESOURCE}/${encodeURIComponent(sid)}/export`, {
+    params,
     responseType: 'blob',
     timeout: 60_000,
   })
