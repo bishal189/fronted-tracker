@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { isIsoDateOnly } from '../lib/recordDate.js'
 import {
   BEHAVIOUR_OPTIONS,
   buildDraftFromStudent,
@@ -26,6 +27,7 @@ export function StudentEditModal({ student, onClose, onSave }) {
   const titleId = useId()
   const [draft, setDraft] = useState(() => buildDraftFromStudent(student))
   const isNew = String(student.id).startsWith('new-')
+  const dateIsIso = isIsoDateOnly(draft.date)
 
   const inputClass = `${fieldBase} ${
     isNew
@@ -311,10 +313,11 @@ export function StudentEditModal({ student, onClose, onSave }) {
                 </label>
                 <input
                   id="edit-date"
-                  type="date"
+                  type={dateIsIso ? 'date' : 'text'}
                   value={draft.date}
                   onChange={(e) => patch('date', e.target.value)}
                   className={inputClass}
+                  placeholder={dateIsIso ? undefined : 'e.g. ०२ जेठ २०८३'}
                 />
               </div>
               <div className="sm:col-span-2">

@@ -1,11 +1,12 @@
 import { useEffect, useId, useState } from 'react'
 import toast from 'react-hot-toast'
 import { exportStudent, fetchStudents } from '../api/students.js'
+import { isIsoDateOnly } from '../lib/recordDate.js'
 import { StudentRecordsTable } from './StudentRecordsTable'
 
 function dateOnly(value) {
-  const s = String(value ?? '').trim().slice(0, 10)
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''
+  const s = String(value ?? '').trim()
+  return isIsoDateOnly(s) ? s : ''
 }
 
 function recordDate(row) {
@@ -21,6 +22,9 @@ function formatExportError(err) {
   if (Array.isArray(data.message)) return data.message.join(', ')
   return err?.message || 'Could not export.'
 }
+
+const dateInputClassName =
+  'rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50'
 
 export function StudentRecordsModal({ studentId, studentName, onClose, onEdit, onDelete }) {
   const titleId = useId()
@@ -181,7 +185,7 @@ export function StudentRecordsModal({ studentId, studentName, onClose, onEdit, o
                   value={filterFrom}
                   onChange={(e) => setFilterFrom(e.target.value)}
                   disabled={loading}
-                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50"
+                  className={dateInputClassName}
                 />
               </label>
               <label className="flex min-w-0 flex-col gap-1">
@@ -191,7 +195,7 @@ export function StudentRecordsModal({ studentId, studentName, onClose, onEdit, o
                   value={filterTo}
                   onChange={(e) => setFilterTo(e.target.value)}
                   disabled={loading}
-                  className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50"
+                  className={dateInputClassName}
                 />
               </label>
             </div>
@@ -242,7 +246,7 @@ export function StudentRecordsModal({ studentId, studentName, onClose, onEdit, o
               <StudentRecordsTable
                 rows={records}
                 onRowClick={handleRowClickInModal}
-                rowClickTitle="Set date filter to this row's date"
+                rowClickTitle="Set date filter to this row's date (when date is YYYY-MM-DD)"
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onCopy={handleDuplicateRow}

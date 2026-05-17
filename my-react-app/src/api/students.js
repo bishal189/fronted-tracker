@@ -1,4 +1,5 @@
 import { apiClient } from './client.js'
+import { formatRecordDate, isIsoDateOnly, recordDateSortKey } from '../lib/recordDate.js'
 
 const RESOURCE = '/students'
 
@@ -19,17 +20,19 @@ function boolishToCount(value) {
   return 0
 }
 
-function isoToDateOnly(iso) {
-  if (iso == null || typeof iso !== 'string') return ''
-  return iso.length >= 10 ? iso.slice(0, 10) : iso
+function recordSortKey(r) {
+  return recordDateSortKey(r)
 }
 
-function recordSortKey(r) {
-  if (!r || typeof r !== 'object') return -Infinity
-  const raw = r.recordDate ?? r.createdAt
-  if (raw == null) return -Infinity
-  const t = Date.parse(String(raw))
-  return Number.isNaN(t) ? -Infinity : t
+/** Subject lives on each record; fall back to student-level subject for older API payloads. */
+function recordSubject(s, r) {
+  if (r?.subject != null && String(r.subject).trim() !== '') {
+    return String(r.subject)
+  }
+  if (s?.subject != null && String(s.subject).trim() !== '') {
+    return String(s.subject)
+  }
+  return ''
 }
 
 /** One flattened row for a student + API record (full list + summary). */
@@ -38,7 +41,7 @@ export function mapStudentRecordToRow(s, r, rowIndexForFallbackId) {
   const name = s.name != null ? String(s.name) : ''
   const studentClass = s.class != null ? String(s.class) : ''
   const section = s.section == null || s.section === '' ? '' : String(s.section)
-  const subject = s.subject == null || s.subject === '' ? '' : String(s.subject)
+  const subject = recordSubject(s, r)
   const rid = r.id != null ? r.id : `${s.id}-${rowIndexForFallbackId}`
   return {
     id: `r-${rid}`,
@@ -56,7 +59,7 @@ export function mapStudentRecordToRow(s, r, rowIndexForFallbackId) {
     behaviour: r.behavior != null ? String(r.behavior) : '',
     participation: r.participation != null ? String(r.participation) : '',
     remarks: r.remarks != null ? String(r.remarks) : '',
-    date: isoToDateOnly(r.recordDate),
+    date: formatRecordDate(r.recordDate),
     action: r.action != null ? String(r.action) : '',
     others: r.others != null ? String(r.others) : '',
   }
@@ -85,7 +88,7 @@ function emptySummaryRowForStudent(s) {
   const name = s.name != null ? String(s.name) : ''
   const studentClass = s.class != null ? String(s.class) : ''
   const section = s.section == null || s.section === '' ? '' : String(s.section)
-  const subject = s.subject == null || s.subject === '' ? '' : String(s.subject)
+  const subject = ''
   const sid = s.id
   return {
     id: `s-${sid}`,
@@ -144,8 +147,8 @@ export function mapNestedStudentsToRows(students) {
 }
 
 function normalizeDateQuery(value) {
-  const s = String(value ?? '').trim().slice(0, 10)
-  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''
+  const s = String(value ?? '').trim()
+  return isIsoDateOnly(s) ? s : ''
 }
 
 /** @param {{ from?: string; to?: string; signal?: AbortSignal }} [options] */
@@ -191,8 +194,10 @@ export function rowToCreateStudentBody(row) {
     homework: nullableTrim(row.homework),
     participation: nullableTrim(row.participation),
     date: (() => {
-      const d = String(row.date ?? '').trim().slice(0, 10)
-      return d.length > 0 ? d : null
+      const d = String(row.date ?? '').trim()
+      if (!d) return null
+      if (isIsoDateOnly(d)) return d
+      return d
     })(),
     remarks: nullableTrim(row.remarks),
   }

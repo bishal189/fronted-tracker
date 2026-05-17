@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "dist:tar": "npm run build && tar -cf my-react-app-dist.tar -C dist .",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -97,8 +97,11 @@ function StudentTableRow({
         </span>
       </td>
       <td className="whitespace-nowrap px-4 py-3">
-        <span className="inline-flex rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200/90">
-          {row.date}
+        <span
+          className="inline-flex whitespace-nowrap rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200/90"
+          title={row.date || undefined}
+        >
+          {row.date || '—'}
         </span>
       </td>
       <td
@@ -215,7 +218,7 @@ export function StudentRecordsTable({
             <th className="min-w-[140px] whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
               Remarks
             </th>
-            <th className="whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
+            <th className="min-w-[10.5rem] whitespace-nowrap px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-white/95">
               Date
             </th>
             <th className="min-w-[14rem] whitespace-nowrap px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-wider text-white/95">
