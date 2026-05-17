@@ -258,14 +258,17 @@ export function DashboardPage() {
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-emerald-950">Bulk export</h3>
             <p className="mt-0.5 text-xs text-slate-500">
-              Download one spreadsheet for all students. Leave dates empty for a full export.
+              Download one spreadsheet for all students. Dates as YYYY-MM-DD (e.g. 2082-01-01). Leave empty
+              for a full export.
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:gap-3">
             <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">From</span>
               <input
-                type="date"
+                type="text"
+                inputMode="numeric"
+                placeholder="2082-01-01"
                 value={bulkExportFrom}
                 onChange={(e) => setBulkExportFrom(e.target.value)}
                 className={dateInputClassName}
@@ -274,7 +277,9 @@ export function DashboardPage() {
             <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">To</span>
               <input
-                type="date"
+                type="text"
+                inputMode="numeric"
+                placeholder="2082-05-30"
                 value={bulkExportTo}
                 onChange={(e) => setBulkExportTo(e.target.value)}
                 className={dateInputClassName}
