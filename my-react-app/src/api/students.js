@@ -1,5 +1,10 @@
 import { apiClient } from './client.js'
-import { formatRecordDate, isIsoDateOnly, recordDateSortKey } from '../lib/recordDate.js'
+import {
+  formatRecordDate,
+  isIsoDateOnly,
+  normalizeApiDate,
+  recordDateSortKey,
+} from '../lib/recordDate.js'
 
 const RESOURCE = '/students'
 
@@ -59,7 +64,11 @@ export function mapStudentRecordToRow(s, r, rowIndexForFallbackId) {
     behaviour: r.behavior != null ? String(r.behavior) : '',
     participation: r.participation != null ? String(r.participation) : '',
     remarks: r.remarks != null ? String(r.remarks) : '',
-    date: formatRecordDate(r.recordDate),
+    date:
+      r.recordDate != null && typeof r.recordDate === 'string' && !/^\d{4}-\d{2}-\d{2}/.test(r.recordDate)
+        ? String(r.recordDate)
+        : formatRecordDate(r.recordDate),
+    dateApi: normalizeApiDate(r.recordDateBs ?? r.recordDate),
     action: r.action != null ? String(r.action) : '',
     others: r.others != null ? String(r.others) : '',
   }
@@ -147,8 +156,7 @@ export function mapNestedStudentsToRows(students) {
 }
 
 function normalizeDateQuery(value) {
-  const s = String(value ?? '').trim()
-  return isIsoDateOnly(s) ? s : ''
+  return normalizeApiDate(value)
 }
 
 /** @param {{ from?: string; to?: string; signal?: AbortSignal }} [options] */
@@ -181,7 +189,7 @@ function rowBoolFlag(value) {
 
 export function rowToCreateStudentBody(row) {
   const sectionRaw = String(row.section ?? '').trim()
-  return {
+  const body = {
     name: String(row.studentName ?? '').trim(),
     subject: nullableTrim(row.subject),
     class: String(row.studentClass ?? '').trim(),
@@ -193,14 +201,11 @@ export function rowToCreateStudentBody(row) {
     classwork: nullableTrim(row.classwork),
     homework: nullableTrim(row.homework),
     participation: nullableTrim(row.participation),
-    date: (() => {
-      const d = String(row.date ?? '').trim()
-      if (!d) return null
-      if (isIsoDateOnly(d)) return d
-      return d
-    })(),
     remarks: nullableTrim(row.remarks),
   }
+  const apiDate = normalizeApiDate(row.dateApi ?? row.date)
+  if (apiDate) body.date = apiDate
+  return body
 }
 
 /** Body for POST /students/:id/records — same fields as create except student name (student is in the URL). */

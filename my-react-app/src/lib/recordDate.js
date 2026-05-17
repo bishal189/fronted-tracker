@@ -26,6 +26,17 @@ export function isIsoDateOnly(value) {
   return ISO_DATE_ONLY.test(String(value ?? '').trim())
 }
 
+const BS_YEAR_THRESHOLD = 2040
+
+/** YYYY-MM-DD accepted by the API (Bikram Sambat year ≥ 2040, or Gregorian AD). */
+export function normalizeApiDate(value) {
+  const s = String(value ?? '').trim()
+  if (!isIsoDateOnly(s)) return ''
+  const year = Number(s.slice(0, 4))
+  if (year >= BS_YEAR_THRESHOLD || year < 2100) return s
+  return ''
+}
+
 /** For sorting records: ISO timestamps first, else stable order by record id. */
 export function recordDateSortKey(record) {
   if (!record || typeof record !== 'object') return -Infinity

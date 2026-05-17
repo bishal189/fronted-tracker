@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { isIsoDateOnly } from '../lib/recordDate.js'
+import { normalizeApiDate } from '../lib/recordDate.js'
 import {
   BEHAVIOUR_OPTIONS,
   buildDraftFromStudent,
@@ -25,9 +25,18 @@ const ADD_PLACEHOLDERS = {
 
 export function StudentEditModal({ student, onClose, onSave }) {
   const titleId = useId()
-  const [draft, setDraft] = useState(() => buildDraftFromStudent(student))
+  const [draft, setDraft] = useState(() => {
+    const base = buildDraftFromStudent(student)
+    const apiDate = normalizeApiDate(student.dateApi ?? student.date)
+    return {
+      ...base,
+      date: apiDate || base.date,
+      dateApi: apiDate || student.dateApi || '',
+    }
+  })
   const isNew = String(student.id).startsWith('new-')
-  const dateIsIso = isIsoDateOnly(draft.date)
+  const dateUsesPicker = Boolean(normalizeApiDate(draft.date))
+  const hasDisplayOnlyDate = Boolean(student.date) && !normalizeApiDate(student.dateApi ?? student.date)
 
   const inputClass = `${fieldBase} ${
     isNew
@@ -70,9 +79,11 @@ export function StudentEditModal({ student, onClose, onSave }) {
     const abs = flagFromDraft(draft.abs) ? 1 : 0
     const late = flagFromDraft(draft.late) ? 1 : 0
 
+    const apiDate = normalizeApiDate(draft.date)
     onSave({
       ...draft,
       id: student.id,
+      dateApi: apiDate,
       studentName: name,
       subject: String(draft.subject ?? '').trim(),
       studentClass: String(draft.studentClass ?? '').trim(),
@@ -313,12 +324,17 @@ export function StudentEditModal({ student, onClose, onSave }) {
                 </label>
                 <input
                   id="edit-date"
-                  type={dateIsIso ? 'date' : 'text'}
+                  type={dateUsesPicker ? 'date' : 'text'}
                   value={draft.date}
                   onChange={(e) => patch('date', e.target.value)}
                   className={inputClass}
-                  placeholder={dateIsIso ? undefined : 'e.g. ०२ जेठ २०८३'}
+                  placeholder={dateUsesPicker ? undefined : 'e.g. 2083-02-02'}
                 />
+                {hasDisplayOnlyDate ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Shown in list: {student.date}. Enter date as YYYY-MM-DD (e.g. 2083-02-02) to update.
+                  </p>
+                ) : null}
               </div>
               <div className="sm:col-span-2">
                 <label className={labelClass} htmlFor="edit-remarks">
