@@ -4,6 +4,7 @@ import {
   appendStudentRecordFromRow,
   createStudentFromRow,
   deleteStudentFromRow,
+  exportAllStudents,
   exportStudent,
   fetchStudents,
   patchStudentFromRow,
@@ -54,6 +55,8 @@ export function DashboardPage() {
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [recordsModal, setRecordsModal] = useState(null)
+  const [bulkExportFrom, setBulkExportFrom] = useState('')
+  const [bulkExportTo, setBulkExportTo] = useState('')
 
   async function refreshStudentLists() {
     const payload = await fetchStudents()
@@ -222,6 +225,23 @@ export function DashboardPage() {
     setEditTarget(null)
   }
 
+  function handleBulkExport() {
+    void toast.promise(
+      exportAllStudents({
+        ...(bulkExportFrom ? { from: bulkExportFrom } : {}),
+        ...(bulkExportTo ? { to: bulkExportTo } : {}),
+      }),
+      {
+        loading: 'Preparing bulk export…',
+        success: 'Download started',
+        error: (err) => formatSaveError(err),
+      },
+    )
+  }
+
+  const dateInputClassName =
+    'rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100'
+
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-6">
       <div>
@@ -231,6 +251,51 @@ export function DashboardPage() {
         <p className="mt-1 text-sm text-slate-500">
           Review student records, attendance notes, and classroom performance.
         </p>
+      </div>
+
+      <div className="rounded-xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50/90 via-white to-teal-50/50 p-4 shadow-sm ring-1 ring-emerald-50 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-emerald-950">Bulk export</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Download one spreadsheet for all students. Leave dates empty for a full export.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:gap-3">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">From</span>
+              <input
+                type="date"
+                value={bulkExportFrom}
+                onChange={(e) => setBulkExportFrom(e.target.value)}
+                className={dateInputClassName}
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">To</span>
+              <input
+                type="date"
+                value={bulkExportTo}
+                onChange={(e) => setBulkExportTo(e.target.value)}
+                className={dateInputClassName}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleBulkExport}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white px-4 py-2 text-sm font-semibold text-teal-800 shadow-sm transition hover:border-teal-300 hover:bg-teal-50"
+            >
+              <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                />
+              </svg>
+              Export all
+            </button>
+          </div>
+        </div>
       </div>
 
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-emerald-200/70 bg-white shadow-md shadow-emerald-100/50 ring-1 ring-emerald-50">

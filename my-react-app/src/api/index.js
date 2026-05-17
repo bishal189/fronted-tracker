@@ -15,6 +15,7 @@ export {
   deleteStudent,
   deleteStudentFromRow,
   exportStudent,
+  exportAllStudents,
   mapNestedStudentsToRows,
   mapStudentsToSummaryRows,
   mapStudentRecordToRow,

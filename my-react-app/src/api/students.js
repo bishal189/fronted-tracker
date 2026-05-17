@@ -288,23 +288,16 @@ function parseFilenameFromContentDisposition(value) {
   return null
 }
 
-/** GET /students/:id/export — saves response as a file (uses Content-Disposition filename when present). Optional `from` / `to` (YYYY-MM-DD) query params. */
-export async function exportStudent(studentId, range = {}) {
-  const sid = studentId != null ? String(studentId).trim() : ''
-  if (!sid) {
-    const err = new Error('Missing student id for export.')
-    throw err
-  }
+function exportDateParams(range = {}) {
   const params = {}
   const fromQ = normalizeDateQuery(range.from)
   const toQ = normalizeDateQuery(range.to)
   if (fromQ) params.from = fromQ
   if (toQ) params.to = toQ
-  const res = await apiClient.get(`${RESOURCE}/${encodeURIComponent(sid)}/export`, {
-    params,
-    responseType: 'blob',
-    timeout: 60_000,
-  })
+  return params
+}
+
+function downloadBlobFromResponse(res, fallbackFilename) {
   const blob = res.data
   if (!(blob instanceof Blob)) {
     const err = new Error('Unexpected export response.')
@@ -312,7 +305,7 @@ export async function exportStudent(studentId, range = {}) {
   }
   const cd =
     res.headers?.['content-disposition'] ?? res.headers?.['Content-Disposition'] ?? ''
-  const filename = parseFilenameFromContentDisposition(cd) || `student-${sid}-export`
+  const filename = parseFilenameFromContentDisposition(cd) || fallbackFilename
   const objectUrl = URL.createObjectURL(blob)
   try {
     const a = document.createElement('a')
@@ -325,4 +318,29 @@ export async function exportStudent(studentId, range = {}) {
   } finally {
     URL.revokeObjectURL(objectUrl)
   }
+}
+
+/** GET /students/:id/export — optional `from` / `to` query params. */
+export async function exportStudent(studentId, range = {}) {
+  const sid = studentId != null ? String(studentId).trim() : ''
+  if (!sid) {
+    const err = new Error('Missing student id for export.')
+    throw err
+  }
+  const res = await apiClient.get(`${RESOURCE}/${encodeURIComponent(sid)}/export`, {
+    params: exportDateParams(range),
+    responseType: 'blob',
+    timeout: 60_000,
+  })
+  downloadBlobFromResponse(res, `student-${sid}-export.xlsx`)
+}
+
+/** GET /students/export — all students in one spreadsheet; optional `from` / `to`. */
+export async function exportAllStudents(range = {}) {
+  const res = await apiClient.get(`${RESOURCE}/export`, {
+    params: exportDateParams(range),
+    responseType: 'blob',
+    timeout: 120_000,
+  })
+  downloadBlobFromResponse(res, 'all_students.xlsx')
 }
